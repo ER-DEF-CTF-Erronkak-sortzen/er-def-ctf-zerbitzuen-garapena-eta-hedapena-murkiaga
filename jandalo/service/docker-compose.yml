@@ -6,9 +6,9 @@ services:
             dockerfile: Dockerfile
         ports:
             - "9798:80"
-#    ssh:
-#        build:
-#            context: ./ssh
-#            dockerfile: Dockerfile
-#        ports:
-#            - "8823:22"
+    mysql:
+        build:
+            context: ./mysqla
+            dockerfile: Dockerfile
+        ports:
+            - "8833:3306"
