@@ -79,7 +79,7 @@ users.txt file must have one line with *user:password* and the access to the dat
     docker exec -it jandalo_web_1 /bin/bash<br>
     echo "dev1:pasahitz_berria" > /usr/local/apache2/htdocs/admin/users.txt<br>
     exit
-    </code><br>
+    </code>
     At this point the service status is correct (up).
 
 # Checker checks:
@@ -96,6 +96,10 @@ Checks done:
 # License notes
 Parts from:
 https://github.com/kristianvld/SQL-Injection-Playground
+
+# requirements (services-playbook):
+- mysql-connector-python
+- curl
 
 
 
