@@ -110,7 +110,7 @@ class MyChecker(checkerlib.BaseChecker):
         output = stdout.read().decode().strip()
         print (hashlib.md5(output.encode()).hexdigest())
 
-        return hashlib.md5(output.encode()).hexdigest() == '39cff490d2bf197588ad0d0f9f24f906'
+        return hashlib.md5(output.encode()).hexdigest() == 'ba55c65e08e320f1225c76f810f1328b'
   
     # Private Funcs - Return False if error
     def _add_new_flag(self, ssh_session, flag):

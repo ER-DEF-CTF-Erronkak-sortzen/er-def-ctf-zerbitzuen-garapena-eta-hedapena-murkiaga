@@ -39,6 +39,23 @@
           - docker.io
         state: present
 
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+        
+    - name: Install curl
+      apt:
+        name: curl
+        state: present
+        
+    - name: Install MySQL Client and Server
+      apt:
+        name:
+          - default-mysql-server
+          - default-mysql-client
+        state: present
+        force: yes
+
     - name: Execute run script
       shell: export SERVICES_PATH={{ services_destination_folder }} && {{ services_destination_folder }}{{ item }}/run_{{ item }}.sh
       loop: "{{ services_to_install.stdout_lines }}"

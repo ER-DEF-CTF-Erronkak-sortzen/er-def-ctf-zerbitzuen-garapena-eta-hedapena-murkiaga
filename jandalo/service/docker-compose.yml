@@ -1,0 +1,14 @@
+version: '3'
+services:
+    web:
+        build:
+            context: ./web
+            dockerfile: Dockerfile
+        ports:
+            - "9798:80"
+    mysql:
+        build:
+            context: ./mysqla
+            dockerfile: Dockerfile
+        ports:
+            - "8833:3306"
