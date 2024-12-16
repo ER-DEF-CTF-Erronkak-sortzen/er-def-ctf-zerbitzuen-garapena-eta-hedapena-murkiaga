@@ -51,12 +51,12 @@ users.txt file must have one line with *user:password* and the access to the dat
     </code>
 
     - Change permissions of http://ip/admin folder. Add this code to **/usr/local/apache2/conf/httpd.conf**<br>
-    <code>
-      \<Directory "/usr/local/apache2/htdocs/admin"><br>
+      ```
+      <Directory "/usr/local/apache2/htdocs/admin"><br>
         Require ip 10.255.254.0/24<br>
         Require all denied<br>
-      \</Directory>
-    </code><br>
+      </Directory>
+      ```
     *We allow network 10.255.254.0/24 to let the checker if there is a user:password in that folders txt*
     Now if the attacker tries to get to /admin page: will get forbidden error, but still can see the general page.
     
@@ -93,7 +93,6 @@ Checks done:
 - TEAM 1. Stop the container: 'root@team0-services:~# docker stop jandalo_mysql_1' It works OK, service's status becomes DOWN.
 - TEAM 2. Change users.txt password but not on database. Service's status becomes faulty. 
 - TEAM 2. Changes the password of the database, but not on users.txt. Service's status becomes faulty. 
-
 # License notes
 Parts from:
 https://github.com/kristianvld/SQL-Injection-Playground
