@@ -1,57 +1,98 @@
 # JanDaLo Service definition:
 - We have two dockers: 
-1. An Ubuntu (latest version) one which contains the flags. 
+1. A mysql:8.0 image, which contains the flags on da Database. 
 2. One who has install apache service. 
-The attacker has access to a web page (web_docker) and has to look for information that can help him accessing the other docker.
-The flags are stored in that last docker's file and attacker has to let them in his T-Submission machine. 
+The attacker has access to a web page (web_docker) and has to look for information that can help him accessing the other docker via mysql service.
+The flags are stored in that last docker's database and attacker has to let them in his T-Submission machine. 
 
 # Service implementation:
-web docker is configured to take a copy index.html file from the host machine, letting it in '/usr/local/apache2/htdocs/index.html'. 
-ssh docker is configured attending to the following tips:
-  - It has openssh-server installed and started. 
+web docker is configured to take a copy index.html and users.txt files from the host machine, letting it in '*/usr/local/apache2/htdocs/index.html*' and in '*/usr/local/apache2/htdocs/admin/users.txt*'. 
+mysql docker is configured attending to the following tips:
+  - It has mysql-server installed and started. 
   - It has a user called 'dev1' whose password is 'w3ar3h4ck3r2'. 
 
- 'dev1' user's password will never be changed. Moreover, if a team changes it, it will be losing SLa points. 
+users.txt file will never be changed and the access to the database must be open. Moreover, if a team changes users.txt or denies dev1 access to the database, it will be losing SLa points. 
  
 -Flags: 
-    Flags will be stored in 'pasapasa_ssh_1' docker's '/tmp/flags.txt' file. 
+    Flags will be stored in 'jandalo_mysql_1' docker's *ctf_db* database in table *flag* that has a column *flag_value*.
 
 # About exploting:
-- The attacker has to inspect the index.html document; the credentialas are stored there as plain text. With those credentials, the attacker can log into pasapasa_ssh docker and take the flags from /tmp/flags.txt.
-- The defender should change 'dev1' user's password. 
+- The attacker has to access to http://*target-ip*/admin folder; the credentialas are stored there as plain text in the file **users.txt**. With those credentials, the attacker can log into jandalo_mysql docker and take the flags from the ctf_db database.
+- The defender should change the following things:
+  - Disable the access to /admin folder or the user.txt file modifying /**usr/local/apache2/conf/httpd.conf** file
+  - Restart the apache service: <code>httpd -k restart</code>
+  - Change the username/password of the database.
+  - Update the userts.txt file with the new user/password
   
-  Attack performed by Team1 against Team 4. 
-  Inspect web page in 10.0.0.104
-      We find 'dev1/w3ar3h4ck3r2' credentials.
-  ssh -p 8822 dev1@10.0.0.104
-        Enter 'w3ar3h4ck3r2' as password
-  cat /tmp/flags.txt
-     Copy last flags
-     Exit
-  'ssh -i /home/urko/Deskargak/keyak/team2-sshkey root@10.0.1.1'
-  nano /root/xxx.flag
-    Paste copied flags. 
+  
+  Attack performed by Team1 against Team2. 
+  Visit web page in 10.0.2.101/admin
+      We find users.txt file with 'dev1/w3ar3h4ck3r2' credentials.
+  With those credentials, connect to the database of attacked machine:
 
-  Defense performed by Team4
-     'ssh root@10.0.0.104'
-     docker exec -it pasapasa_ssh_1 /bin/bash
-     passwd dev1
-     
+  <code>mysql -P 8833 -h 10.0.2.101 -u dev1 -pw3ar3h4ck3r2</code>
+
+  Now see what databases exists and select the data of the only database-table:  
+  <code> show databases;<br>
+  select * from ctf_db.flag;<br>
+  </code>
+  Copy last flags and exit.
+
+  'ssh -i ./keyak/team2-sshkey root@10.0.1.1'
+  nano /root/xxx.flag
+  Paste copied flags. 
+
+  <b>Defense performed by Team2</b>
+
+    - Connect to the machine and execute web docker's bash:<br>
+    <code>ssh root@10.0.2.101<br>
+    docker exec -it jandalo_web_1 /bin/bash<br>
+    </code>
+
+    - Change permissions of http://ip/admin folder. Add this code to **/usr/local/apache2/conf/httpd.conf**<br>
+    <code>
+      \<Directory "/usr/local/apache2/htdocs/admin"><br>
+        Require ip 10.255.254.0/24<br>
+        Require all denied<br>
+      \</Directory>
+    </code><br>
+    *We allow network 10.255.254.0/24 to let the checker if there is a user:password in that folders txt*
+    Now if the attacker tries to get to /admin page: will get forbidden error, but still can see the general page.
+    
+    - Restart apache2 service and exit web docker's bash<br>
+    <code>httpd -k restart<br>exit</code>
+
+    - Execute mysql docker's bash and change username and/or password of the user in the database. Then exit:<br>
+    <code>
+    docker exec -it jandalo_mysql_1 /bin/bash<br>
+    mysql -u root -prootpassword<br>
+    ALTER USER 'dev1'@'%' IDENTIFIED BY 'pasahitz_berria';<br>
+    FLUSH PRIVILEGES;<br>
+    exit<br>
+    exit<br>
+    </code>
+    At this point, there is a FAULTY service (depending on Tick duration), because the user:pass in the web users.txt file is not a valir user in the database, so we have to change it in the web docker, updating the new password.
+
+    - Connect one more time to web docker's bash and update /admin/users.txt file with the new password:<br>
+    <code>
+    docker exec -it jandalo_web_1 /bin/bash<br>
+    echo "dev1:pasahitz_berria" > /usr/local/apache2/htdocs/admin/users.txt<br>
+    exit
+    </code><br>
+    At this point the service status is correct (up).
 
 # Checker checks:
-- Ports to reach dockers are open (WEB:9797; SSH 8822)
-- User 'dev1' exists in pasapasa_ssh docker. 
-- /etc/sshd_config file from pasapasa_ssh docker has not been changed. 
-- /usr/local/apache2/htdocs/index.html file's content from pasapasa_web docker has not been changed. 
+- Ports to reach dockers are open (WEB:9798; MYSQL:8833)
+- users.txt file exists in \<web>/admin folder. 
+- the *user:password* of users.txt has access to mysql database
+- the flags are present on the database ctf_db.flag 
 
 Checks done: 
-- TEAM 0. Stop the container: 'root@team0-services:~# docker stop pasapasa_web_1' It works OK, service's status becomes DOWN. 
-- TEAM 1. Stop the container: 'root@team0-services:~# docker stop pasapasa_ssh_1' It works OK, service's status becomes DOWN.
-- TEAM 2. 'userdel dev1'. It works OK, service's status becomes faulty. 
-- TEAM 3. Change '/etc/sshd_config' file from 'pasapasa_ssh' docker. It works OK, service's status becomes faulty.
-- TEAM 4. Change '/usr/local/apache2/htdocs/index.html' file from 'pasapasa_web' docker. It works OK, service's status becomes faulty.
-- TEAM 5. 'ssh service stop'. It works OK, service's status becomes faulty. 
-- TEAM 0. apt update apache2
+- TEAM 1. Stop the container: 'root@team0-services:~# docker stop jandalo_web_1' It works OK, service's status becomes DOWN. 
+- TEAM 1. Stop the container: 'root@team0-services:~# docker stop jandalo_mysql_1' It works OK, service's status becomes DOWN.
+- TEAM 2. Change users.txt password but not on database. Service's status becomes faulty. 
+- TEAM 2. Changes the password of the database, but not on users.txt. Service's status becomes faulty. 
+
 # License notes
 Parts from:
 https://github.com/kristianvld/SQL-Injection-Playground

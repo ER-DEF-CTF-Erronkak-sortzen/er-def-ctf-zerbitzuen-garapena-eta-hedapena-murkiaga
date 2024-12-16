@@ -38,20 +38,9 @@ class MyChecker(checkerlib.BaseChecker):
         logging.info(f"URL: {self._baseurl}")
         self.db_host = self.ip
         self.db_port = PORT_MYSQL
-        self.db_user = "dev1"
-        self.db_password = "w3ar3h4ck3r2"
+        self.db_user = "root"
+        self.db_password = "rootpassword"
         self.db_name = "ctf_db"
-
-    #@ssh_connect()
-    #def place_flag(self, tick): #EGITEKE MUA
-    #    flag = checkerlib.get_flag(tick)
-    #    creds = self._add_new_flag(self.client, flag)
-    #    if not creds:
-    #        return checkerlib.CheckResult.FAULTY
-    #    logging.info('created')
-    #    checkerlib.store_state(str(tick), creds)
-    #    checkerlib.set_flagid(str(tick))
-    #    return checkerlib.CheckResult.OK
     
     @ssh_connect()  # Decorador proporcionado por tu infraestructura
     def place_flag(self, tick):
@@ -73,8 +62,8 @@ class MyChecker(checkerlib.BaseChecker):
             else:
                 logging.error("No se pudo conectar a MySQL.")
                 return checkerlib.CheckResult.FAULTY
-        except Error as e:
-            logging.error(f"Error al conectar con la base de datos: {e}")
+        except:
+            logging.error("Error al conectar con la base de datos")
             return checkerlib.CheckResult.FAULTY
         finally:
             if 'connection' in locals() and connection.is_connected():
@@ -89,31 +78,27 @@ class MyChecker(checkerlib.BaseChecker):
         # check if ports are open
         if not self._check_port_web(self.ip, PORT_WEB) or not self._check_port_mysql(self.ip, PORT_MYSQL):
             return checkerlib.CheckResult.DOWN
-        #else
-        # check if server is Apache 2.4.50
-        ##MUAif not self._check_apache_version():
-        ##MUA    return checkerlib.CheckResult.FAULTY
-        # check if dev1 user exists in pasapasa_ssh docker
-        if not self._check_user_in_db('dev1'):
+        
+        #MUA orain fitxategia aldatu daiteke if not self._check_web_integrity(file_path_web):
+        #MUA    return checkerlib.CheckResult.FAULTY  
+        # Check erabiltzaile:pasahitza users.txt fitxategia existitzen den ala ez (edukia kontuan hartu gabe)
+        file_path_web_users = '/usr/local/apache2/htdocs/admin/users.txt'       
+        if not self._check_userstxt_exist(file_path_web_users):
             return checkerlib.CheckResult.FAULTY
-        file_path_web = '/usr/local/apache2/htdocs/admin/users.txt'
-        # check if index.hmtl from pasapasa_web has been changed by comparing its hash with the hash of the original file
-        if not self._check_web_integrity(file_path_web):
-            return checkerlib.CheckResult.FAULTY            
-        ##MUAfile_path_ssh = '/etc/ssh/sshd_config'
-        # check if /etc/sshd_config from pasapasa_ssh has been changed by comparing its hash with the hash of the original file
-        ##MUAif not self._check_ssh_integrity(file_path_ssh):
-        ##MUA    return checkerlib.CheckResult.FAULTY            
+        
+        #Orain erabiltzailea aldatu daiteke. Checkeatu ea dev1 erabiltzailea existitzen den datubasean.
+        ##MUA if not self._check_user_in_db('dev1'):
+        #MUA    return checkerlib.CheckResult.FAULTY
+        # check if 'user':'pass' in users.txt exists in jandalo_mysql docker's database
+        if not self._check_user_with_credentials(file_path_web_users):
+            return checkerlib.CheckResult.FAULTY
+                
         return checkerlib.CheckResult.OK
     
     def check_flag(self, tick):
         if not self.check_service():
             return checkerlib.CheckResult.DOWN
         flag = checkerlib.get_flag(tick)
-        #creds = checkerlib.load_state("flag_" + str(tick))
-        # if not creds:
-        #     logging.error(f"Cannot find creds for tick {tick}")
-        #     return checkerlib.CheckResult.FLAG_NOT_FOUND
         flag_present = self._check_flag_present(flag)
         if not flag_present:
             return checkerlib.CheckResult.FLAG_NOT_FOUND
@@ -129,19 +114,20 @@ class MyChecker(checkerlib.BaseChecker):
         
         output = stdout.read().decode().strip()
         return hashlib.md5(output.encode()).hexdigest() == '536cb16e62551ba6954fd55833b114b5' #users.txt
-    
+  
     @ssh_connect()
-    def _check_ssh_integrity(self, path):
+    def _check_userstxt_exist(self, path):
         ssh_session = self.client
-        command = f"docker exec pasapasa_ssh_1 sh -c 'cat {path}'"
+        command = f"docker exec jandalo_web_1 sh -c 'test -f {path} && echo exists || echo not_exists'"
         stdin, stdout, stderr = ssh_session.exec_command(command)
         if stderr.channel.recv_exit_status() != 0:
+            print(f"Error executing command: {stderr.read().decode().strip()}")
             return False
-        output = stdout.read().decode().strip()
-        print (hashlib.md5(output.encode()).hexdigest())
 
-        return hashlib.md5(output.encode()).hexdigest() == 'ba55c65e08e320f1225c76f810f1328b'
-  
+        output = stdout.read().decode().strip()
+        print(f"File existence check output: {output}")
+        return output == "exists"
+
     # Private Funcs - Return False if error
     def _add_new_flag(self, connection, flag):
         try:
@@ -151,8 +137,8 @@ class MyChecker(checkerlib.BaseChecker):
             cursor.execute(query, (flag,))
             connection.commit()
             return {'flag': flag}
-        except Error as e:
-            logging.error(f"Error al insertar el flag: {e}")
+        except:
+            logging.error("Error al insertar el flag:")
             return False     
 
     @ssh_connect()
@@ -161,7 +147,7 @@ class MyChecker(checkerlib.BaseChecker):
         ssh_session = self.client
         command = (
             "docker exec jandalo_mysql_1 "
-            "mysql -u root -prootpassword -e "
+            "mysql -u root -prootpassword -c " # edo -e?
             f"'SELECT COUNT(*) FROM mysql.user WHERE user = \"{username}\";'"
         )
         stdin, stdout, stderr = ssh_session.exec_command(command)
@@ -189,7 +175,7 @@ class MyChecker(checkerlib.BaseChecker):
             return False
 
         try:
-            count = int(lines[1])  # La segunda línea contiene el valor del conteo
+            count = int(lines[1])  # Lehen lerroan COUNT(*) eta bigarrenean emaitza dago
             print(f"Flags found: {count}")
             return count > 0
         except ValueError:
@@ -221,6 +207,43 @@ class MyChecker(checkerlib.BaseChecker):
         finally:
             sock.close()
 
+    @ssh_connect()
+    def _check_user_with_credentials(self, userfile_path):
+        ssh_session = self.client
+
+        # userfile_path-en fitxategia irakurri (erabiltzaile:pasahitz formatua espero da)
+        command = f"docker exec jandalo_web_1 sh -c 'cat {userfile_path}'"
+        stdin, stdout, stderr = ssh_session.exec_command(command)
+
+        if stderr.channel.recv_exit_status() != 0:
+            print(f"Error reading credentials file: {stderr.read().decode().strip()}")
+            return False
+
+        # Irteeratik erabiltzaile:pasahitza jaso
+        output = stdout.read().decode().strip()
+        print(f"Raw credentials file content:\n{output}")
+        try:
+            username, password = output.split(":")
+        except ValueError:
+            print("Invalid format in credentials file. Expected 'username:password'")
+            return False
+
+        # Konprobatu ea erabiltzaile:pasahitza existitzen den mysqlen
+        mysql_command = (
+            f"docker exec jandalo_mysql_1 "
+            f"mysql -u {username} -p{password} -e 'SELECT 1;'"
+        )
+        try:
+            stdin, stdout, stderr = ssh_session.exec_command(mysql_command)
+
+            if stderr.channel.recv_exit_status() != 0:
+                print(f"Invalid MySQL credentials for user '{username}': {stderr.read().decode().strip()}")
+                return False
+        except:
+            return False
+
+        print(f"MySQL credentials for user '{username}' are valid.")
+        return True
 
 if __name__ == '__main__':
     checkerlib.run_check(MyChecker)

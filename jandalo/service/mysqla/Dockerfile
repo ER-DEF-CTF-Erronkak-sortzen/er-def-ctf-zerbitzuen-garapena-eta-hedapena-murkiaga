@@ -10,3 +10,4 @@ ENV MYSQL_PASSWORD=w3ar3h4ck3r2
 # Copiar el script de inicialización al contenedor
 COPY init.sql /docker-entrypoint-initdb.d/
 
+EXPOSE 3306
