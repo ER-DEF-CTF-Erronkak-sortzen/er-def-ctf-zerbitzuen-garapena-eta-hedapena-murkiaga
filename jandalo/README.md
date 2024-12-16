@@ -1,5 +1,5 @@
 # JanDaLo Service definition:
-- We have two dockers: 
+We have two dockers: 
 1. A mysql:8.0 image, which contains the flags on da Database. 
 2. A httpd:2.4.50 image, with apache service. 
 The attacker has access to a web page (web_docker) and has to look for information that can help him accessing the other docker via mysql service.
