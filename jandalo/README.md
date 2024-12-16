@@ -33,12 +33,13 @@ users.txt file must have one line with *user:password* and the access to the dat
   <br><code>mysql -P 8833 -h 10.0.2.101 -u dev1 -pw3ar3h4ck3r2</code>
 
   - Now see what databases exists and select the data of the only database-table:  
-  <code> show databases;<br>
-  select * from ctf_db.flag;<br>
-  </code>
+  <code>show databases;<br>
+  select * from ctf_db.flag;
+  </code><br>
   Copy last flags and exit.
 
-  - Place them in Submission machine<br><code>'ssh -i ./keyak/team2-sshkey root@10.0.1.1'</code><br>
+  - Place them in Submission machine<br>
+  <code>'ssh -i ./keyak/team2-sshkey root@10.0.1.1'</code><br>
   <code>nano /root/xxx.flag</code><br>
   Paste copied flags. 
 
